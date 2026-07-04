@@ -44,11 +44,13 @@ jobs:
           sleep 5
           if kill -0 "$PID" 2>/dev/null; then echo "launch OK"; kill "$PID"; else echo "startup crashed"; exit 1; fi
 
-      - name: Upload build artifact
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: MorseRunner-macos-arm64
-          path: dist/*.zip
+          path: |
+            dist/*.dmg
+            dist/*.zip
 
       - name: Attach to GitHub release (tags only)
         if: startsWith(github.ref, 'refs/tags/v')
@@ -56,7 +58,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # release is normally created from the local build; attach/clobber the
-          # CI-built artifact. Create it if it doesn't exist yet.
-          gh release upload "${GITHUB_REF_NAME}" dist/*.zip --clobber \
-            || gh release create "${GITHUB_REF_NAME}" dist/*.zip \
+          # CI-built artifacts. Create it if it doesn't exist yet.
+          gh release upload "${GITHUB_REF_NAME}" dist/*.dmg dist/*.zip --clobber \
+            || gh release create "${GITHUB_REF_NAME}" dist/*.dmg dist/*.zip \
                  --title "MorseRunner ${GITHUB_REF_NAME}" --generate-notes

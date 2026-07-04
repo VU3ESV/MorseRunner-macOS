@@ -40,6 +40,17 @@ codesign --force --deep --sign - "$APP"
 mkdir -p "$HERE/dist"
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
-
 echo "packaged: $ZIP"
+
+# 6. build a drag-install .dmg (the .app + an /Applications symlink). Headless-
+#    friendly (hdiutil only, no Finder), so it works in CI.
+DMG="$HERE/dist/MorseRunner-macos-${ARCH}.dmg"
+STAGE="$(mktemp -d)"
+cp -R "$APP" "$STAGE/MorseRunner.app"
+ln -s /Applications "$STAGE/Applications"
+rm -f "$DMG"
+hdiutil create -volname "Morse Runner" -srcfolder "$STAGE" -ov -quiet -format UDZO "$DMG"
+rm -rf "$STAGE"
+echo "packaged: $DMG"
+
 codesign -dv "$APP" 2>&1 | grep -E 'Signature|Identifier' || true

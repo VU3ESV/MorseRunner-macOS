@@ -14,8 +14,12 @@ identical to the Windows original. Adds two integrations for CW-decoder testing:
 
 ## Download & install
 
-1. Download **`MorseRunner-macos-arm64.zip`** below and unzip it.
-2. Move **`MorseRunner.app`** to `/Applications` (or anywhere).
+1. Download **`MorseRunner-macos-arm64.dmg`** below and open it.
+2. In the window that appears, **drag `MorseRunner.app` onto the `Applications`
+   folder**.
+3. Eject the disk image.
+
+(A plain `.zip` of the app is also attached if you prefer.)
 
 **Apple Silicon only** (arm64). PortAudio is bundled inside the app — no Homebrew
 needed on the target Mac.
