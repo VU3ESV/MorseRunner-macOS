@@ -43,7 +43,7 @@ Body (all fields optional except `mode`):
   "call": "AB1TEST",       // your (running-station) callsign
   "wpm": 28,               // your keying speed; callers key near this
   "activity": 8,           // 1..9, how many callers answer each CQ
-  "pitchHz": 600, "bandwidthHz": 500, "qsk": true, "rit": 0,
+  "pitchHz": 600, "bandwidthHz": 500, "spreadHz": 300, "qsk": true, "rit": 0,
   "qrn": false, "qrm": false, "qsb": true, "flutter": true, "lids": true,
   "muteLocal": true        // silence the Mac speakers; sim/SDR/truth keep running
 }
@@ -53,6 +53,20 @@ Body (all fields optional except `mode`):
 > speaker output while the simulation keeps running at full real-time rate — so
 > the SDR IQ stream and the ground-truth calls are unaffected. Ideal when driving
 > MorseRunner purely as a test SDR source.
+
+> `spreadHz` (0..3000, default 300) is the **standard deviation of the Gaussian
+> frequency scatter** of the pileup callers around `pitchHz`. The original tight
+> pile (300) can overlap callers in the same audio bin; widen it so an SDR
+> skimmer resolves callers into separate frequencies for cleaner decode tests.
+> The value it maps to (each caller's true offset) is reported per call as
+> `freq_hz`.
+
+> **Range validation.** Numeric settings are bounds-checked, not silently
+> clamped: `wpm` 10..120, `pitchHz` 300..900, `bandwidthHz` 100..600 (50 Hz
+> grid), `activity` 1..9, `rit` -500..500, `spreadHz` 0..3000. An out-of-range
+> value makes `POST /command` (`set`) and `POST /scenario` return **HTTP 400**
+> with `{"ok":false,"error":"…out of range…"}` and changes nothing — so a test
+> harness sees the bad input instead of a quietly coerced run.
 
 Behaviour: applies those settings, **resets** the call log, starts the run, sends
 CQ (and keeps re-CQing for `pileup`/`wpx` so the pileup stays fed), waits
@@ -88,7 +102,7 @@ Each `calls` entry is one caller as it became active:
 
 | action | params | does |
 |--------|--------|------|
-| `set` | any of `call, wpm, pitchHz, bandwidthHz, qsk, activity, rit, qrn, qrm, qsb, flutter, lids, muteLocal` | set those controls; returns full state |
+| `set` | any of `call, wpm, pitchHz, bandwidthHz, spreadHz, qsk, activity, rit, qrn, qrm, qsb, flutter, lids, muteLocal` | set those controls; returns full state |
 | `run` | `mode` = `stop\|pileup\|single\|wpx\|hst` | start/stop a run mode |
 | `stop` | — | stop the run |
 | `send` | `msg` = `cq\|nr\|tu\|mycall\|hiscall\|b4\|qm\|nil\|agn` | send an F-key message |

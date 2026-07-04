@@ -32,6 +32,11 @@ var
   Wpm: integer = 30;
   BandWidth: integer = 500;
   Pitch: integer = 600;
+  // Std-dev of the Gaussian frequency spread of pileup callers (Hz): how far
+  // callers scatter around the RX pitch. Default 300 keeps the original tight
+  // pile; larger values spread the pile so an SDR skimmer can resolve callers
+  // into separate bins. Settable via the control API (spreadHz).
+  PitchSpread: integer = 300;
   Qsk: boolean = true;
   Rit: integer = 0;
   BufSize: integer = DEFAULTBUFSIZE;

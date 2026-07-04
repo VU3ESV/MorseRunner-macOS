@@ -216,7 +216,8 @@ const
     'POST /scenario {mode,durationSec,...}  run a scenario, return calls' + LineEnding +
     LineEnding +
     'command actions: set | run | stop | send | enter | saveQso | wipe' + LineEnding +
-    '  set   {call,wpm,pitchHz,bandwidthHz,qsk,activity,rit,qrn,qrm,qsb,flutter,lids}' + LineEnding +
+    '  set   {call,wpm,pitchHz,bandwidthHz,spreadHz,qsk,activity,rit,qrn,qrm,qsb,flutter,lids}' + LineEnding +
+    '         (out-of-range numeric params -> HTTP 400; spreadHz 0..3000, caller freq scatter)' + LineEnding +
     '  run   {mode: stop|pileup|single|wpx|hst}' + LineEnding +
     '  send  {msg: cq|nr|tu|mycall|hiscall|b4|qm|nil|agn}' + LineEnding +
     '  enter {call,rst,nr}' + LineEnding +
@@ -262,9 +263,9 @@ begin
 end;
 
 
-procedure SendJson(var AResponse: TFPHTTPConnectionResponse; Obj: TJSONData);
+procedure SendJson(var AResponse: TFPHTTPConnectionResponse; Obj: TJSONData; Code: integer = 200);
 begin
-  AResponse.Code := 200;
+  AResponse.Code := Code;
   AResponse.ContentType := 'application/json';
   AResponse.Content := Obj.AsJSON;
   Obj.Free;
@@ -323,7 +324,8 @@ begin
       if body <> nil then body.Free; Exit;
       end;
     res := CallMain(body.Get('action', ''), body);
-    SendJson(AResponse, res);
+    if res.Find('error') <> nil then SendJson(AResponse, res, 400)
+    else SendJson(AResponse, res);
     body.Free;
     Exit;
     end;
@@ -337,7 +339,10 @@ begin
     if durSec < 1 then durSec := 1;
     if durSec > 600 then durSec := 600;
 
-    (CallMain('scenario_start', body)).Free;     // apply + reset log + start
+    res := CallMain('scenario_start', body);      // apply + reset log + start
+    if res.Find('error') <> nil then
+      begin SendJson(AResponse, res, 400); body.Free; Exit; end;
+    res.Free;
     Sleep(durSec * 1000);                         // let the run generate calls
     (CallMain('stop', nil)).Free;
 

@@ -58,7 +58,7 @@ begin
   if Ini.Flutter and (Random < 0.3) then Qsb.Bandwidth := 3 + Random * 30;
 
   Amplitude := 9000 + 18000 * (1 + RndUShaped);
-  Pitch := Round(RndGaussLim(0, 300));
+  Pitch := Round(RndGaussLim(0, Ini.PitchSpread));
 
   //(port) ground-truth event: this caller (true call/freq/wpm) just became
   //active. Records into the control-API call log and (if the SDR server is up)

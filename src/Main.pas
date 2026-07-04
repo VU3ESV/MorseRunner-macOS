@@ -1292,9 +1292,41 @@ end;
 //        Runs on the main thread (invoked via TThread.Synchronize).
 //------------------------------------------------------------------------------
 function TMainForm.ApiDispatch(const Action: string; Params: TJSONObject): TJSONObject;
+var
+  vErr: string;
 
   function OkObj: TJSONObject;
   begin Result := TJSONObject.Create; Result.Add('ok', true); end;
+
+  function ErrObj(const Msg: string): TJSONObject;
+  begin Result := TJSONObject.Create; Result.Add('ok', false); Result.Add('error', Msg); end;
+
+  // Bounds-check every provided setting. Returns '' if all in range, else a
+  // message naming the offending param and its valid range. Unlike the old
+  // silent clamp, out-of-range values are REJECTED — ControlApi turns a
+  // non-empty error into HTTP 400.
+  function ValidateSettings(P: TJSONObject): string;
+    function Chk(const Name: string; Lo, Hi: integer): string;
+    var v: integer;
+    begin
+      Result := '';
+      if P.Find(Name) <> nil then
+        begin
+        v := P.Get(Name, Lo);
+        if (v < Lo) or (v > Hi) then
+          Result := Format('%s=%d out of range [%d..%d]', [Name, v, Lo, Hi]);
+        end;
+    end;
+  begin
+    Result := '';
+    if P = nil then Exit;
+    Result := Chk('wpm', 10, 120);          if Result <> '' then Exit;
+    Result := Chk('pitchHz', 300, 900);     if Result <> '' then Exit;
+    Result := Chk('bandwidthHz', 100, 600); if Result <> '' then Exit;
+    Result := Chk('activity', 1, 9);        if Result <> '' then Exit;
+    Result := Chk('rit', -500, 500);        if Result <> '' then Exit;
+    Result := Chk('spreadHz', 0, 3000);     if Result <> '' then Exit;
+  end;
 
   function ModeFromStr(const s: string): TRunMode;
   begin
@@ -1340,6 +1372,7 @@ function TMainForm.ApiDispatch(const Action: string; Params: TJSONObject): TJSON
       end;
     if P.Find('pitchHz') <> nil then SetPitch(Max(0, Min(12, (P.Get('pitchHz', 600) - 300) div 50)));
     if P.Find('bandwidthHz') <> nil then SetBw(Max(0, Min(10, (P.Get('bandwidthHz', 500) - 100) div 50)));
+    if P.Find('spreadHz') <> nil then Ini.PitchSpread := P.Get('spreadHz', Ini.PitchSpread);
     if P.Find('qsk') <> nil then SetQsk(P.Get('qsk', Qsk));
     if P.Find('activity') <> nil then
       begin Ini.Activity := Max(1, Min(9, P.Get('activity', Activity))); SpinEdit3.Value := Ini.Activity; end;
@@ -1366,6 +1399,7 @@ function TMainForm.ApiDispatch(const Action: string; Params: TJSONObject): TJSON
     Result.Add('wpm', Ini.Wpm);
     Result.Add('pitchHz', Ini.Pitch);
     Result.Add('bandwidthHz', Ini.Bandwidth);
+    Result.Add('spreadHz', Ini.PitchSpread);
     Result.Add('activity', Ini.Activity);
     Result.Add('rit', Ini.Rit);
     Result.Add('qrn', Ini.Qrn);   Result.Add('qrm', Ini.Qrm);
@@ -1390,7 +1424,11 @@ begin
   if Action = 'state' then
     Result := BuildState
   else if Action = 'set' then
-    begin ApplySettings(Params); Result := BuildState; end
+    begin
+    vErr := ValidateSettings(Params);
+    if vErr <> '' then Result := ErrObj(vErr)
+    else begin ApplySettings(Params); Result := BuildState; end;
+    end
   else if Action = 'run' then
     begin
     if (Params <> nil) and (ModeFromStr(Params.Get('mode', 'stop')) = rmStop) then FApiCq.Enabled := false;
@@ -1420,6 +1458,8 @@ begin
     begin WipeBoxes; Result := OkObj; end
   else if Action = 'scenario_start' then
     begin
+    vErr := ValidateSettings(Params);
+    if vErr <> '' then begin Result := ErrObj(vErr); Exit; end;
     ApplySettings(Params);
     Run(rmStop);                                       // clean slate
     Run(ModeFromStr(Params.Get('mode', 'single')));    // resets the call log

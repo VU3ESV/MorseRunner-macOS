@@ -1,13 +1,16 @@
-# MorseRunner (macOS) v0.1.4
+# MorseRunner (macOS) v0.1.5
 
-**New in v0.1.4:** **SDR IQ decode-quality fix** — the HPSDR IQ stream no longer
-hard-clips. The summed baseband is now normalized with headroom and QRN impulses
-soft-saturate (phase-preserving magnitude limiter) instead of splattering, so a
-narrowband pileup stays a tight cluster and a CW Skimmer decodes real calls
-instead of a smeared band.
+**New in v0.1.5:** **Configurable caller pitch spread** — the pileup's frequency
+scatter is now settable via the control API (`spreadHz`, 0..3000 Hz, default 300,
+the original tight pile). Widen it so an SDR skimmer resolves callers into
+separate frequency bins for cleaner CW-decoder tests. Also: the control API now
+**validates numeric settings** — out-of-range `wpm`/`pitchHz`/`bandwidthHz`/
+`activity`/`rit`/`spreadHz` return **HTTP 400** instead of being silently clamped,
+so a test harness catches bad input.
 
-Earlier: **Settings → Mute Local Audio** (silence speakers while IQ + ground truth
-keep running) and **File → Import Master.dta** (load a call database).
+Earlier: **SDR IQ decode-quality fix** (no more hard-clipping / band splatter),
+**Settings → Mute Local Audio** (silence speakers while IQ + ground truth keep
+running) and **File → Import Master.dta** (load a call database).
 
 
 A native macOS port of **Morse Runner 1.68** (the CW contest simulator by Alex
