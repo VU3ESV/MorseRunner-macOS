@@ -1,8 +1,13 @@
-# MorseRunner (macOS) v0.1.3
+# MorseRunner (macOS) v0.1.4
 
-**New in v0.1.3:** **Settings → Mute Local Audio** — silence the Mac speakers
-while a run keeps generating IQ + ground truth (ideal when driving MorseRunner as
-a test SDR source; also settable via the control API `muteLocal` field).
+**New in v0.1.4:** **SDR IQ decode-quality fix** — the HPSDR IQ stream no longer
+hard-clips. The summed baseband is now normalized with headroom and QRN impulses
+soft-saturate (phase-preserving magnitude limiter) instead of splattering, so a
+narrowband pileup stays a tight cluster and a CW Skimmer decodes real calls
+instead of a smeared band.
+
+Earlier: **Settings → Mute Local Audio** (silence speakers while IQ + ground truth
+keep running) and **File → Import Master.dta** (load a call database).
 
 
 A native macOS port of **Morse Runner 1.68** (the CW contest simulator by Alex
