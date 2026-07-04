@@ -275,9 +275,10 @@ type
     procedure SdrServerClick(Sender: TObject);
   private
     SdrMenu, SdrSep: TMenuItem;
-    ApiMenu: TMenuItem;
+    ApiMenu, MasterMenu: TMenuItem;
     FControl: TControlApi;
     FApiCq: TTimer;
+    procedure ImportMasterClick(Sender: TObject);
     procedure ControlApiClick(Sender: TObject);
     procedure ApiCqTimer(Sender: TObject);
     function ApiDispatch(const Action: string; Params: TJSONObject): TJSONObject;
@@ -356,6 +357,11 @@ begin
   ApiMenu.OnClick := ControlApiClick;
   File1.Insert(File1.IndexOf(Exit1), ApiMenu);
 
+  MasterMenu := TMenuItem.Create(Self);
+  MasterMenu.Caption := 'Import Master.dta call database...';
+  MasterMenu.OnClick := ImportMasterClick;
+  File1.Insert(File1.IndexOf(SdrSep), MasterMenu);   // above the SDR/API toggles
+
   // re-CQ pump used by the /scenario endpoint for pileup/wpx modes
   FApiCq := TTimer.Create(Self);
   FApiCq.Interval := 7000;
@@ -363,6 +369,30 @@ begin
   FApiCq.OnTimer := ApiCqTimer;
 
   ApiRegisterDispatch(ApiDispatch);
+end;
+
+
+procedure TMainForm.ImportMasterClick(Sender: TObject);
+var
+  dlg: TOpenDialog;
+  dst: string;
+begin
+  dlg := TOpenDialog.Create(Self);
+  try
+    dlg.Title := 'Import Master.dta call database';
+    dlg.Filter := 'Call database|*.dta;MASTER.DTA;Master.dta|All files|*.*';
+    if not dlg.Execute then Exit;
+    dst := AppFile('Master.dta');                 // ~/.config/Morse Runner/Master.dta
+    with TMemoryStream.Create do
+      try LoadFromFile(dlg.FileName); SaveToFile(dst); finally Free; end;
+    LoadCallList;                                 // reload from the imported file
+    Application.MessageBox(PChar(Format(
+      'Imported %d callsigns.'#13#13'From: %s'#13'Saved to: %s',
+      [Calls.Count, dlg.FileName, dst])),
+      'Import Master.dta', MB_OK or MB_ICONINFORMATION);
+  finally
+    dlg.Free;
+  end;
 end;
 
 

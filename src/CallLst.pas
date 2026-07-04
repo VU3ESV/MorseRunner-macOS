@@ -48,7 +48,11 @@ var
 begin
   Calls.Clear;
 
-  FileName := ExtractFilePath(ParamStr(0)) + 'Master.dta';
+  // (port) prefer an imported copy in the user data dir (~/.config/Morse Runner),
+  // fall back to one placed next to the executable (original behaviour).
+  FileName := AppFile('Master.dta');
+  if not FileExists(FileName) then
+    FileName := ExtractFilePath(ParamStr(0)) + 'Master.dta';
   if not FileExists(FileName) then Exit;
 
   with TFileStream.Create(FileName, fmOpenRead) do

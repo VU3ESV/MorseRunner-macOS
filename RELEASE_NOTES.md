@@ -52,9 +52,9 @@ quarantined).
 - Launch, press **F1 / Enter** to send CQ and start a pileup.
 - **File → SDR Server (HPSDR :1024)** to stream IQ to a CW Skimmer.
 - **File → Test Control API (:7300)** to drive it from a test app.
-- For a realistic pileup with diverse callsigns, drop a `Master.dta`
-  supercheck-partial file next to the executable
-  (`MorseRunner.app/Contents/MacOS/`); without it every caller is `P29SX`.
+- For a realistic pileup with diverse callsigns, load a `Master.dta`
+  supercheck-partial file via **File → Import Master.dta…** (copied to
+  `~/.config/Morse Runner/`); without it every caller is `P29SX`.
 
 ## Build from source
 

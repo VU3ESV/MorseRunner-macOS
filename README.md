@@ -33,9 +33,10 @@ git clone --depth 1 -b lazarus_3_6 \
 open MorseRunner.app
 ```
 
-Optionally drop a `Master.dta` supercheck-partial call database next to the
-executable for a realistic pileup (without it the app falls back to a single
-call, exactly as the original does).
+For a realistic pileup with diverse callsigns, load a `Master.dta`
+supercheck-partial call database via **File → Import Master.dta…** (it is copied
+to `~/.config/Morse Runner/` and reloaded immediately). Without it the app falls
+back to a single call, exactly as the original does.
 
 ## Status
 
