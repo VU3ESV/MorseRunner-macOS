@@ -41,6 +41,7 @@ type
     FSamplesPerSec: LongWord;
     FOnBufAvailable: TNotifyEvent;
     FCloseWhenDone: boolean;
+    FMuted: boolean;
 
     FStream: PPaStream;
     FPaReady: boolean;
@@ -70,6 +71,10 @@ type
     procedure Purge;
     // called on the PortAudio thread; copies up to ACount samples out of the ring
     procedure ConsumeInto(Dest: PSmallInt; ACount: integer);
+    // When true, silence is sent to the speakers but the pump keeps running, so
+    // the simulation still advances (IQ tap + ground truth keep working). Used
+    // when MorseRunner is driven as an SDR source and you don't want local audio.
+    property Muted: boolean read FMuted write FMuted default false;
   published
     // NOTE: these must be *published* so the .lfm form streamer can read them
     // (the original TAlSoundOut published the same set).
@@ -271,9 +276,14 @@ begin
     for i := 0 to n-1 do
       begin
       if FCount >= FCap then Break;     // ring full: drop (mirrors "buffers full")
-      v := Round(Data[i]);
-      if v > 32767 then v := 32767
-      else if v < -32767 then v := -32767;
+      if FMuted then
+        v := 0                          // speakers silent; pump still advances the sim
+      else
+        begin
+        v := Round(Data[i]);
+        if v > 32767 then v := 32767
+        else if v < -32767 then v := -32767;
+        end;
       FRing[FTail] := SmallInt(v);
       FTail := (FTail + 1) mod FCap;
       Inc(FCount);

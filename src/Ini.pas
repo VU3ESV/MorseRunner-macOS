@@ -50,6 +50,7 @@ var
 
   SaveWav: boolean = false;
   CallsFromKeyer: boolean = false;
+  MuteLocal: boolean = false;   // (port) silence the speakers while running
 
 
 procedure FromIni;
@@ -133,6 +134,9 @@ begin
       MainForm.VolumeSlider1.Value := V / 80 + 0.75;
 
       SaveWav := ReadBool(SEC_STN, 'SaveWav', SaveWav);
+
+      MuteLocal := ReadBool(SEC_STN, 'MuteLocalAudio', MuteLocal);
+      MainForm.AlSoundOut1.Muted := MuteLocal;
     finally
       Free;
     end;
@@ -166,6 +170,7 @@ begin
       WriteInteger(SEC_STN, 'SelfMonVolume', V);
 
       WriteBool(SEC_STN, 'SaveWav', SaveWav);
+      WriteBool(SEC_STN, 'MuteLocalAudio', MuteLocal);
     finally
       Free;
     end;

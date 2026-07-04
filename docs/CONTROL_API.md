@@ -44,9 +44,15 @@ Body (all fields optional except `mode`):
   "wpm": 28,               // your keying speed; callers key near this
   "activity": 8,           // 1..9, how many callers answer each CQ
   "pitchHz": 600, "bandwidthHz": 500, "qsk": true, "rit": 0,
-  "qrn": false, "qrm": false, "qsb": true, "flutter": true, "lids": true
+  "qrn": false, "qrm": false, "qsb": true, "flutter": true, "lids": true,
+  "muteLocal": true        // silence the Mac speakers; sim/SDR/truth keep running
 }
 ```
+
+> `muteLocal` (also **Settings → Mute Local Audio** in the UI) silences the local
+> speaker output while the simulation keeps running at full real-time rate — so
+> the SDR IQ stream and the ground-truth calls are unaffected. Ideal when driving
+> MorseRunner purely as a test SDR source.
 
 Behaviour: applies those settings, **resets** the call log, starts the run, sends
 CQ (and keeps re-CQing for `pileup`/`wpx` so the pileup stays fed), waits
@@ -82,7 +88,7 @@ Each `calls` entry is one caller as it became active:
 
 | action | params | does |
 |--------|--------|------|
-| `set` | any of `call, wpm, pitchHz, bandwidthHz, qsk, activity, rit, qrn, qrm, qsb, flutter, lids` | set those controls; returns full state |
+| `set` | any of `call, wpm, pitchHz, bandwidthHz, qsk, activity, rit, qrn, qrm, qsb, flutter, lids, muteLocal` | set those controls; returns full state |
 | `run` | `mode` = `stop\|pileup\|single\|wpx\|hst` | start/stop a run mode |
 | `stop` | — | stop the run |
 | `send` | `msg` = `cq\|nr\|tu\|mycall\|hiscall\|b4\|qm\|nil\|agn` | send an F-key message |

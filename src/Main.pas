@@ -275,10 +275,11 @@ type
     procedure SdrServerClick(Sender: TObject);
   private
     SdrMenu, SdrSep: TMenuItem;
-    ApiMenu, MasterMenu: TMenuItem;
+    ApiMenu, MasterMenu, MuteMenu: TMenuItem;
     FControl: TControlApi;
     FApiCq: TTimer;
     procedure ImportMasterClick(Sender: TObject);
+    procedure MuteLocalClick(Sender: TObject);
     procedure ControlApiClick(Sender: TObject);
     procedure ApiCqTimer(Sender: TObject);
     function ApiDispatch(const Action: string; Params: TJSONObject): TJSONObject;
@@ -362,6 +363,13 @@ begin
   MasterMenu.OnClick := ImportMasterClick;
   File1.Insert(File1.IndexOf(SdrSep), MasterMenu);   // above the SDR/API toggles
 
+  // Settings -> Mute Local Audio (keeps the sim/SDR/API running, speakers silent)
+  MuteMenu := TMenuItem.Create(Self);
+  MuteMenu.Caption := 'Mute Local Audio';
+  MuteMenu.OnClick := MuteLocalClick;
+  MuteMenu.Checked := Ini.MuteLocal;
+  Settings1.Insert(Settings1.IndexOf(MonLevel1) + 1, MuteMenu);
+
   // re-CQ pump used by the /scenario endpoint for pileup/wpx modes
   FApiCq := TTimer.Create(Self);
   FApiCq.Interval := 7000;
@@ -369,6 +377,14 @@ begin
   FApiCq.OnTimer := ApiCqTimer;
 
   ApiRegisterDispatch(ApiDispatch);
+end;
+
+
+procedure TMainForm.MuteLocalClick(Sender: TObject);
+begin
+  Ini.MuteLocal := not Ini.MuteLocal;
+  MuteMenu.Checked := Ini.MuteLocal;
+  AlSoundOut1.Muted := Ini.MuteLocal;   // takes effect immediately, even mid-run
 end;
 
 
@@ -1333,6 +1349,12 @@ function TMainForm.ApiDispatch(const Action: string; Params: TJSONObject): TJSON
     if P.Find('qsb') <> nil then CheckBox2.Checked := P.Get('qsb', Ini.Qsb);
     if P.Find('flutter') <> nil then CheckBox5.Checked := P.Get('flutter', Ini.Flutter);
     if P.Find('lids') <> nil then CheckBox6.Checked := P.Get('lids', Ini.Lids);
+    if P.Find('muteLocal') <> nil then
+      begin
+      Ini.MuteLocal := P.Get('muteLocal', Ini.MuteLocal);
+      MuteMenu.Checked := Ini.MuteLocal;
+      AlSoundOut1.Muted := Ini.MuteLocal;
+      end;
     ReadCheckboxes;
   end;
 
@@ -1349,6 +1371,7 @@ function TMainForm.ApiDispatch(const Action: string; Params: TJSONObject): TJSON
     Result.Add('qrn', Ini.Qrn);   Result.Add('qrm', Ini.Qrm);
     Result.Add('qsb', Ini.Qsb);   Result.Add('flutter', Ini.Flutter);
     Result.Add('lids', Ini.Lids);
+    Result.Add('muteLocal', Ini.MuteLocal);
     Result.Add('runMode', ModeStr);
     Result.Add('running', RunMode <> rmStop);
     Result.Add('timeSec', BlocksToSeconds(Tst.BlockNumber));
