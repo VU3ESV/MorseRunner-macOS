@@ -46,6 +46,7 @@ type
     FRate: integer;
     FHaveHost: boolean;
     FFramesSent: int64;
+    FPeak: Single;          // pre-limit peak magnitude of the last block (diag)
 
     procedure ThreadRun;
   public
@@ -60,7 +61,7 @@ type
 implementation
 
 uses
-  ctypes, BaseUnix, Sockets;
+  ctypes, BaseUnix, Sockets, Math;
 
 const
   // BSD/darwin socket constants (hard-coded — target is macOS)
@@ -70,7 +71,13 @@ const
   MR_SO_REUSEADDR= $0004;
   MR_SO_RCVTIMEO = $1006;
 
-  IQ_SCALE   = 100000.0;     // raw MorseRunner complex -> ~[-1,1]
+  // Raw MorseRunner complex -> normalized [-1,1]. Chosen so the steady pileup +
+  // noise floor sit well below full scale (noise ~-30 dBFS, a caller ~-21 dBFS,
+  // a dense pileup ~-7 dBFS) with headroom for QRN. Combined with the magnitude
+  // soft-limiter in PushIq this keeps a narrowband pileup from hard-clipping —
+  // hard-clipping an impulse splatters broadband and smears the pileup across
+  // the whole span (the bug: peak pinned at 1.0, energy spread, garbage decode).
+  IQ_SCALE   = 400000.0;
   DEFRATE    = 48000;
   INRATE     = 11025;
   RING_CAP   = 1 shl 16;
@@ -172,8 +179,9 @@ end;
 procedure THpsdrDevice.PushIq(const Re, Im: TSingleArray; N: integer);
 var
   i: integer;
-  vr, vi: Single;
+  vr, vi, mag, g, blockPeak: Single;
 begin
+  blockPeak := 0;
   FLock.Enter;
   try
     for i := 0 to N-1 do
@@ -181,8 +189,20 @@ begin
       if FCount >= FCap then Break;      // ring full: drop
       vr := Re[i] / IQ_SCALE;
       vi := Im[i] / IQ_SCALE;
-      if vr > 1 then vr := 1 else if vr < -1 then vr := -1;
-      if vi > 1 then vi := 1 else if vi < -1 then vi := -1;
+
+      // phase-preserving soft limiter: compress the complex MAGNITUDE with tanh
+      // (not each channel independently — that would distort the quadrature).
+      // Near-linear for the steady signal; QRN impulses saturate smoothly at 1
+      // instead of hard-clipping and splattering across the band.
+      mag := Sqrt(vr*vr + vi*vi);
+      if mag > blockPeak then blockPeak := mag;
+      if mag > 1e-9 then
+        begin
+        g := Tanh(mag) / mag;
+        vr := vr * g;
+        vi := vi * g;
+        end;
+
       FRingRe[FTail] := vr;
       FRingIm[FTail] := vi;
       FTail := (FTail + 1) mod FCap;
@@ -191,13 +211,15 @@ begin
   finally
     FLock.Leave;
   end;
+  FPeak := blockPeak;                     // >1 means the limiter is engaging
 end;
 
 
 function THpsdrDevice.StatusText: string;
 begin
   if FStreaming then
-    Result := Format('HPSDR streaming %d kHz, %d frames', [FRate div 1000, FFramesSent])
+    Result := Format('HPSDR streaming %d kHz, %d frames, peak %.2f',
+      [FRate div 1000, FFramesSent, FPeak])
   else
     Result := 'HPSDR idle (waiting for skimmer)';
 end;
