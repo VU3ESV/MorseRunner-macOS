@@ -1,4 +1,9 @@
-# MorseRunner (macOS) v0.1.2
+# MorseRunner (macOS) v0.1.3
+
+**New in v0.1.3:** **Settings → Mute Local Audio** — silence the Mac speakers
+while a run keeps generating IQ + ground truth (ideal when driving MorseRunner as
+a test SDR source; also settable via the control API `muteLocal` field).
+
 
 A native macOS port of **Morse Runner 1.68** (the CW contest simulator by Alex
 Shovkoplyas, VE3NEA), recompiled from the original Object Pascal with Free
