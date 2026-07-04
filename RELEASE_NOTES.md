@@ -1,4 +1,4 @@
-# MorseRunner (macOS) v0.1.0
+# MorseRunner (macOS) v0.1.2
 
 A native macOS port of **Morse Runner 1.68** (the CW contest simulator by Alex
 Shovkoplyas, VE3NEA), recompiled from the original Object Pascal with Free
