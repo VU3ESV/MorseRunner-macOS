@@ -377,6 +377,27 @@ begin
   FApiCq.OnTimer := ApiCqTimer;
 
   ApiRegisterDispatch(ApiDispatch);
+
+  // (port) Restore the SDR-server / control-API toggles saved by ToIni. Started
+  // silently here (no message box, unlike the menu clicks). Wrapped so a failed
+  // port bind leaves the toggle off instead of aborting startup; Ini.* is
+  // re-synced to the real outcome so a failure isn't persisted as "on".
+  if Ini.SdrServer then
+    try
+      SdrStart;
+      SdrMenu.Checked := SdrActive;
+      Ini.SdrServer := SdrActive;
+    except
+      SdrMenu.Checked := false; Ini.SdrServer := false;
+    end;
+  if Ini.ApiServer then
+    try
+      FControl := TControlApi.Create(7300);
+      FControl.Start;
+      ApiMenu.Checked := true;
+    except
+      FreeAndNil(FControl); ApiMenu.Checked := false; Ini.ApiServer := false;
+    end;
 end;
 
 
@@ -425,6 +446,7 @@ begin
     FreeAndNil(FControl);
     ApiMenu.Checked := false;
     end;
+  Ini.ApiServer := FControl <> nil;   // persist across restarts (ToIni)
   Application.MessageBox(PChar('Test Control API ' +
     BoolToStr(FControl <> nil, 'ON  http://127.0.0.1:7300/', 'OFF')),
     'Control API', MB_OK or MB_ICONINFORMATION);
@@ -441,6 +463,7 @@ procedure TMainForm.SdrServerClick(Sender: TObject);
 begin
   if SdrActive then SdrStop else SdrStart;
   SdrMenu.Checked := SdrActive;
+  Ini.SdrServer := SdrActive;          // persist across restarts (ToIni)
   Application.MessageBox(PChar(SdrStatus), 'SDR Server', MB_OK or MB_ICONINFORMATION);
 end;
 

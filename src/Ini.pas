@@ -56,6 +56,8 @@ var
   SaveWav: boolean = false;
   CallsFromKeyer: boolean = false;
   MuteLocal: boolean = false;   // (port) silence the speakers while running
+  SdrServer: boolean = false;   // (port) HPSDR SDR server on; restored at startup
+  ApiServer: boolean = false;   // (port) control API on; restored at startup
 
 
 procedure FromIni;
@@ -142,6 +144,12 @@ begin
 
       MuteLocal := ReadBool(SEC_STN, 'MuteLocalAudio', MuteLocal);
       MainForm.AlSoundOut1.Muted := MuteLocal;
+
+      // (port) SDR-server / control-API toggles: loaded here, actually started
+      // (and their menu checkmarks set) at the end of TMainForm.FormCreate,
+      // once those code-created menu items exist.
+      SdrServer := ReadBool(SEC_SYS, 'SdrServer', SdrServer);
+      ApiServer := ReadBool(SEC_SYS, 'ControlApi', ApiServer);
     finally
       Free;
     end;
@@ -176,6 +184,8 @@ begin
 
       WriteBool(SEC_STN, 'SaveWav', SaveWav);
       WriteBool(SEC_STN, 'MuteLocalAudio', MuteLocal);
+      WriteBool(SEC_SYS, 'SdrServer', SdrServer);
+      WriteBool(SEC_SYS, 'ControlApi', ApiServer);
     finally
       Free;
     end;

@@ -1,16 +1,14 @@
-# MorseRunner (macOS) v0.1.5
+# MorseRunner (macOS) v0.1.6
 
-**New in v0.1.5:** **Configurable caller pitch spread** — the pileup's frequency
-scatter is now settable via the control API (`spreadHz`, 0..3000 Hz, default 300,
-the original tight pile). Widen it so an SDR skimmer resolves callers into
-separate frequency bins for cleaner CW-decoder tests. Also: the control API now
-**validates numeric settings** — out-of-range `wpm`/`pitchHz`/`bandwidthHz`/
-`activity`/`rit`/`spreadHz` return **HTTP 400** instead of being silently clamped,
-so a test harness catches bad input.
+**New in v0.1.6:** **Server toggles now persist across restarts.** The **SDR
+Server** and **Test Control API** on/off state is saved to the settings file and
+automatically restored (and their servers re-started) on the next launch —
+matching **Mute Local Audio**, which already persisted. Toggle them once and they
+stay that way.
 
-Earlier: **SDR IQ decode-quality fix** (no more hard-clipping / band splatter),
-**Settings → Mute Local Audio** (silence speakers while IQ + ground truth keep
-running) and **File → Import Master.dta** (load a call database).
+Earlier: **Configurable caller pitch spread** (`spreadHz`) + **control-API range
+validation** (HTTP 400 on out-of-range input); **SDR IQ decode-quality fix** (no
+more hard-clipping / band splatter); **Mute Local Audio**; **Import Master.dta**.
 
 
 A native macOS port of **Morse Runner 1.68** (the CW contest simulator by Alex
