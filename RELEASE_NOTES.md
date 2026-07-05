@@ -1,14 +1,15 @@
-# MorseRunner (macOS) v0.1.6
+# MorseRunner (macOS) v0.1.7
 
-**New in v0.1.6:** **Server toggles now persist across restarts.** The **SDR
-Server** and **Test Control API** on/off state is saved to the settings file and
-automatically restored (and their servers re-started) on the next launch —
-matching **Mute Local Audio**, which already persisted. Toggle them once and they
-stay that way.
+**New in v0.1.7:** **Fixed a hang on quit.** With the control API enabled, the app
+could refuse to quit — its HTTP server thread was parked in a blocking accept that
+the shutdown never woke, so the process hung indefinitely. It now shuts the server
+down cleanly and quits immediately. (This surfaced because v0.1.6 auto-starts the
+saved server toggles on launch.)
 
-Earlier: **Configurable caller pitch spread** (`spreadHz`) + **control-API range
-validation** (HTTP 400 on out-of-range input); **SDR IQ decode-quality fix** (no
-more hard-clipping / band splatter); **Mute Local Audio**; **Import Master.dta**.
+Earlier: **server toggles persist across restarts** (SDR Server + Test Control
+API, matching Mute Local Audio); **configurable caller pitch spread** (`spreadHz`)
++ **control-API range validation** (HTTP 400 on out-of-range input); **SDR IQ
+decode-quality fix** (no more hard-clipping / band splatter); **Import Master.dta**.
 
 
 A native macOS port of **Morse Runner 1.68** (the CW contest simulator by Alex
