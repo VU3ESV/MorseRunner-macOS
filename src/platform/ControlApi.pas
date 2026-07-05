@@ -69,6 +69,7 @@ function  ApiCallCount: integer;
 implementation
 
 uses
+  BaseUnix, Sockets,       // self-connect poke to unblock the accept loop on Stop
   HpsdrDevice, SdrIntf;    // ApiRecordCall also forwards to the SDR truth feed
 
 type
@@ -248,10 +249,27 @@ begin
 end;
 
 procedure TControlApi.Stop;
+var
+  poke: longint;
+  addr: TInetSockAddr;
 begin
   if FServer <> nil then
     begin
+    // TFPHTTPServer's worker thread is parked in a blocking Accept(); setting
+    // Active:=False only flips a flag and does NOT wake it, so a plain WaitFor
+    // hangs forever (the app never quits). Flip the flag, then make one
+    // throwaway localhost connection to wake the Accept — the loop then sees
+    // Active=False and the thread exits, so WaitFor returns.
     try FServer.Active := False; except end;
+    poke := fpSocket(AF_INET, SOCK_STREAM, 0);
+    if poke >= 0 then
+      begin
+      addr.sin_family := AF_INET;
+      addr.sin_port := htons(FPort);
+      addr.sin_addr.s_addr := htonl($7F000001);   // 127.0.0.1
+      fpConnect(poke, @addr, sizeof(addr));         // best-effort; ignore result
+      CloseSocket(poke);
+      end;
     if FThread <> nil then begin FThread.WaitFor; FreeAndNil(FThread); end;
     FreeAndNil(FServer);
     end;
