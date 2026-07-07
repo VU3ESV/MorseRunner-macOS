@@ -13,7 +13,9 @@ so MorseRunner emulates that.
 ## Turn it on
 
 1. **File → SDR Server (HPSDR :1024)** — toggles the servers (a message box shows
-   status). Leave it on.
+   status). Leave it on. The toggle is **remembered across restarts** (v0.1.6+):
+   once enabled it auto-starts on the next launch, so a skimmer/test rig can rely
+   on the device being present without a human re-toggling the menu.
 2. Start a contest run as usual — **Run → Single Calls** (a steady stream of known
    callers, best for decoder scoring) or **Pile-Up** (press F1/Enter to CQ; a
    burst of callers answers). IQ streams only while a run is active.
@@ -41,9 +43,13 @@ Verified against SkimServerMac's `HPSDRConnection` / `HPSDRDiscovery`:
 
 The streamed IQ is the **wideband received baseband** from `Contest.GetAudio` —
 band noise + QRN/QRM + every caller — *before* the operator's narrow CW filter and
-*without* your own transmit signal. MorseRunner's callers sit within ~±300 Hz of
-the receiver centre; each appears at its audio offset (its "pitch"). The complex
-11025 Hz baseband is fractionally resampled up to the requested rate.
+*without* your own transmit signal. (Because the tap is ahead of the CW filter,
+the operator's **bandwidth** setting does not change the IQ a skimmer receives.)
+By default the callers scatter within ~±300 Hz of the receiver centre, each at its
+audio offset (its "pitch"); widen that scatter with the control-API `spreadHz`
+parameter (0..3000 Hz, see [CONTROL_API.md](CONTROL_API.md)) so a skimmer can
+resolve overlapping callers into separate frequencies. The complex 11025 Hz
+baseband is fractionally resampled up to the requested rate.
 
 ## Ground-truth feed (TCP :7355, newline-delimited JSON)
 

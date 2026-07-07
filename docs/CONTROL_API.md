@@ -21,6 +21,26 @@ the Mac's IP.) Install a `Master.dta` supercheck-partial file next to the
 executable for diverse real callsigns; without it every generated caller is the
 fallback `P29SX`.
 
+> **The toggle is remembered (v0.1.6+).** Once you enable the API it is saved to
+> the settings file and **auto-started on the next launch** — so a client can rely
+> on `:7300` being up after a restart without a human re-toggling the menu. (Same
+> for **File → SDR Server** and **Settings → Mute Local Audio**.) Turn it off from
+> the same menu item to stop persisting it.
+
+## Recent changes (client-visible)
+
+What a client integrator needs to know since v0.1.4, newest first
+(full notes in [`RELEASE_NOTES.md`](../RELEASE_NOTES.md)):
+
+| Version | Change | Impact on a client |
+|---------|--------|--------------------|
+| **v0.1.7** | Fixed a hang where MorseRunner would not quit while the API was on | The server now shuts down cleanly; no behavioural change to requests |
+| **v0.1.6** | API / SDR / Mute-Local toggles persist and auto-start on launch | `:7300` stays available across restarts — no need to re-enable the menu |
+| **v0.1.5** | New `spreadHz` parameter; **numeric params are range-validated** | Set caller frequency scatter; out-of-range values now return **HTTP 400** instead of being silently clamped |
+
+The parameter table below is the authoritative reference for names, ranges and
+defaults.
+
 ## Endpoints
 
 | Method & path | Purpose |
@@ -49,24 +69,53 @@ Body (all fields optional except `mode`):
 }
 ```
 
-> `muteLocal` (also **Settings → Mute Local Audio** in the UI) silences the local
-> speaker output while the simulation keeps running at full real-time rate — so
-> the SDR IQ stream and the ground-truth calls are unaffected. Ideal when driving
-> MorseRunner purely as a test SDR source.
+#### Parameter reference
 
-> `spreadHz` (0..3000, default 300) is the **standard deviation of the Gaussian
-> frequency scatter** of the pileup callers around `pitchHz`. The original tight
-> pile (300) can overlap callers in the same audio bin; widen it so an SDR
-> skimmer resolves callers into separate frequencies for cleaner decode tests.
-> The value it maps to (each caller's true offset) is reported per call as
-> `freq_hz`.
+The same fields are accepted by `POST /scenario` and by `POST /command`
+`{"action":"set",…}`. All are optional (except `mode` on `/scenario`); omitted
+fields keep their current value. `GET /state` echoes every one of them back, so a
+client can read the effective value after setting it.
 
-> **Range validation.** Numeric settings are bounds-checked, not silently
-> clamped: `wpm` 10..120, `pitchHz` 300..900, `bandwidthHz` 100..600 (50 Hz
-> grid), `activity` 1..9, `rit` -500..500, `spreadHz` 0..3000. An out-of-range
-> value makes `POST /command` (`set`) and `POST /scenario` return **HTTP 400**
-> with `{"ok":false,"error":"…out of range…"}` and changes nothing — so a test
-> harness sees the bad input instead of a quietly coerced run.
+| param | type | range | default | meaning |
+|-------|------|-------|---------|---------|
+| `mode` | string | `pileup\|single\|wpx\|hst` | — (required on `/scenario`) | contest run mode to start |
+| `durationSec` | int | 1..600 | 30 | *(scenario only)* seconds to run before auto-stop |
+| `call` | string | valid callsign | `VE3NEA` | your (running-station) callsign |
+| `wpm` | int | 10..120 | 30 | your keying speed; callers key near this |
+| `pitchHz` | int | 300..900 (50 Hz grid) | 600 | receiver centre / your CW pitch; snapped to nearest 50 Hz |
+| `bandwidthHz` | int | 100..600 (50 Hz grid) | 500 | **local monitor** CW filter width — **does not** affect the SDR IQ (see note) |
+| `spreadHz` | int | 0..3000 | 300 | std-dev of caller frequency scatter around `pitchHz` (see note) |
+| `activity` | int | 1..9 | 2 | how many callers answer each CQ (Poisson mean = `activity/2` per CQ) |
+| `rit` | int | -500..500 | 0 | receiver incremental tuning offset (Hz) |
+| `qsk` | bool | — | true | full break-in (hear callers between your dits) |
+| `qrn` | bool | — | true | atmospheric static crashes |
+| `qrm` | bool | — | true | interfering station |
+| `qsb` | bool | — | true | Rayleigh fading |
+| `flutter` | bool | — | true | auroral/polar flutter on some callers |
+| `lids` | bool | — | true | poorly-operating stations (call out of turn, wrong RST/NR) |
+| `muteLocal` | bool | — | false | silence the Mac speakers; sim + SDR IQ + ground-truth keep running |
+
+Notes on the parameters that trip clients up:
+
+- **`muteLocal`** (also **Settings → Mute Local Audio**) silences local speaker
+  output while the simulation runs at full real-time rate — the SDR IQ stream and
+  ground-truth calls are unaffected. Ideal when driving MorseRunner purely as a
+  test SDR source.
+- **`spreadHz`** is the standard deviation of the Gaussian frequency scatter of
+  the pileup callers around `pitchHz`. The original tight pile (300) can overlap
+  callers in one audio bin; widen it so an SDR skimmer resolves callers into
+  separate frequencies for cleaner decode tests. Each caller's resulting offset is
+  reported as `freq_hz` in the returned `calls`.
+- **`bandwidthHz`** narrows only the **local monitor audio**. The SDR IQ is tapped
+  wideband *before* the CW filter, so this setting has **no effect on what a CW
+  Skimmer receives** — do not use it to try to widen the skimmer's passband.
+
+**Range validation (v0.1.5+).** Numeric params are bounds-checked, **not silently
+clamped**. An out-of-range value makes `POST /command` (`set`) and `POST /scenario`
+return **HTTP 400** with body `{"ok":false,"error":"pitchHz=1200 out of range
+[300..900]"}` and changes nothing — so a test harness catches bad input instead of
+running with a quietly coerced value. `pitchHz`/`bandwidthHz` are additionally
+snapped to their 50 Hz grid (floored) once in range.
 
 Behaviour: applies those settings, **resets** the call log, starts the run, sends
 CQ (and keeps re-CQing for `pileup`/`wpx` so the pileup stays fed), waits
